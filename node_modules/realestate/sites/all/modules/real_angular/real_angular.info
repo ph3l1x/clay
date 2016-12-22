@@ -1,0 +1,9 @@
+name = RealEstate Angular
+description = Custom Angular for Mindimage Real Estate
+core = 7.x
+dependencies[] = angularjs
+
+
+version = "7.x-1.3"
+core = "7.x"
+project = "real_angular"
