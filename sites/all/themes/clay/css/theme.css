@@ -1,7 +1,6 @@
 body {
   color: #333;
-  -webkit-font-smoothing: subpixel-antialiased;
-  display: none; }
+  -webkit-font-smoothing: subpixel-antialiased; }
 
 html, body {
   height: 100%;
