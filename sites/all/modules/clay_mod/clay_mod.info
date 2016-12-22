@@ -1,3 +1,7 @@
 name = Clay Mod
 description = Custom Module for Clay's Website
 core = 7.x
+
+version = "7.x-1.3"
+core = "7.x"
+project = "clay_mod"

@@ -1,0 +1,17 @@
+<?php
+
+function clay_mod_menu() {
+    $items = array();
+    $items['settings/clay'] = array(
+        'title' => t('Clay Trucking'),
+        'page callback' => 'clay_mod_callback',
+        'access arguments' => array('access content'),
+    );
+
+
+    return $items;
+}
+
+function clay_mod_callback() {
+    var_dump("MONLEY TITS");
+}
