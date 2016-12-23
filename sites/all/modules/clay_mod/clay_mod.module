@@ -1,17 +1,238 @@
 <?php
 
+
 function clay_mod_menu() {
     $items = array();
-    $items['settings/clay'] = array(
+    $items['admin/config/system/clay'] = array(
         'title' => t('Clay Trucking'),
-        'page callback' => 'clay_mod_callback',
-        'access arguments' => array('access content'),
+//        'page callback' => 'clay_mod_callback',
+        'page callback' => 'drupal_get_form',
+        'access arguments' => array('access administration pages'),
+        'page arguments' => array('clay_mod_form'),
+        'type' => MENU_NORMAL_ITEM
     );
 
 
     return $items;
 }
 
-function clay_mod_callback() {
-    var_dump("MONLEY TITS");
+function clay_mod_form($form, &$form_state) {
+    $form['state'] = array (
+        '#type' => 'select',
+        '#title' => 'State',
+        '#options' => array(
+            "" => t('All States'),
+            "AL" => t('Alabama'),
+            "AK" => t('Alaska'),
+            "AZ" => t('Arizona'),
+            "AR" => t('Arkansas'),
+            "CA" => t('California'),
+            "CO" => t('Colorado'),
+            "CT" => t('Connecticut'),
+            "DE" => t('Deleware'),
+            "DC" => t('Washington DC'),
+            "FL" => t('Florida'),
+            "GA" => t('Georgia'),
+            "HI" => t('Hawaii'),
+            "ID" => t('Idaho'),
+            "IL" => t('Illinois'),
+            "IN" => t('Indiana'),
+            "IA" => t('Iowa'),
+            "KS" => t('Kansas'),
+            "KY" => t('Kentucky'),
+            "LA" => t('Louisiana'),
+            "ME" => t('Maine'),
+            "MD" => t('Maryland'),
+            "MA" => t('Massachusettes'),
+            "MI" => t('Michigan'),
+            "MN" => t('Minnesota'),
+            "MS" => t('Mississippi'),
+            "MO" => t('Missouri'),
+            "MT" => t('Montana'),
+            "NE" => t('Nebraska'),
+            "NV" => t('Nevada'),
+            "NH" => t('New Hampshire'),
+            "NJ" => t('New Jersey'),
+            "NM" => t('New Mexico'),
+            "NY" => t('New York'),
+            "NC" => t('North Carolina'),
+            "ND" => t('North Dakota'),
+            "OH" => t('Ohio'),
+            "OK" => t('Oklahoma'),
+            "OR" => t('Oregon'),
+            "PA" => t('Pennsylvania'),
+            "RI" => t('Rhode Island'),
+            "SC" => t('South Carolina'),
+            "SD" => t('South Dakota'),
+            "TN" => t('Tennessee'),
+            "TX" => t('Texas'),
+            "UT" => t('Utah'),
+            "VT" => t('Vermont'),
+            "VA" => t('Virginia'),
+            "WA" => t('Washington'),
+            "WV" => t('West Virginia'),
+            "WI" => t('Wisconson'),
+            "WY" => t('Wyoming')
+        )
+    );
+    $form['Options'] = array(
+        '#type' => 'checkboxes',
+        '#options' => array(
+            t('r, reefer') => t('R, Reefer'),
+            t('r53, 53\'\' reefer') => t('R53, 53\' Reefer'),
+            t('v, van') => t('V, Van')
+        ),
+        '#title' => t('Options'),
+        '#required' => TRUE
+
+    );
+    $form['submit_button'] = array(
+        '#type' => 'submit',
+        '#value' => t('Search'),
+        '#submit' => array('clay_mod_form_results')
+    );
+
+    return $form;
+
+}
+
+function clay_mod_form_results($form, &$form_state) {
+
+//    $form_state['redirect'] = 'node';
+    header('Pragma: public');
+    header('Expires: 0');
+    header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
+    header('Content-Description: File Transfer');
+    header('Content-Type: text/csv');
+    header('Content-Disposition: attachment; filename=export.csv;');
+    header('Content-Transfer-Encoding: binary');
+    $state = $form_state['values']['state'];
+    $options = $form_state['values']['Options'];
+    $username = 'clay@armstrongtransport.com';
+    $password = 'dispatch123Q';
+    $loginURL = 'http://atgfr8.com/Account/Login?ReturnUrl=%2F';
+    $cookie_file_path = "/tmp/cookie.txt";
+    $carrierURL = 'http://atgfr8.com/odata/Carriers?$filter=';
+    $lastPart = '&$format=json&$top=10000&$orderby=ModifiedDate+desc&$count=true';
+
+    foreach($options as $option) {
+        if($option != '0') {
+            $items[] = 'Equipment/any(t:t eq \'' . $option . '\')';
+        }
+    }
+
+    $queryOptions = '('.urlencode(implode(' and ', $items).' and (Status eq \'active\'))');
+
+// ?$filter=1 eq 1 dumps entire database.
+
+    if($state) {
+
+        $stateQuery = '(tolower(State)'.urlencode(' eq \''. strtolower($state) .'\') and ');
+
+        $url = $carrierURL.$stateQuery.$queryOptions.$lastPart;
+    } else {
+        $url = $carrierURL.$queryOptions.$lastPart;
+    }
+
+    $carriers = file_get_contents($url);
+
+    //Login and set Token
+    $ch = curl_init($loginURL);
+    curl_setopt($ch, CURLOPT_HEADER, true);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
+    curl_setopt($ch, CURLOPT_USERAGENT, "Mozilla/5.0 (Windows; U; Windows NT 5.0; en-US; rv:1.7.12) Gecko/20050915 Firefox/1.0.7");
+    curl_setopt($ch, CURLOPT_COOKIESESSION, true);
+    curl_setopt($ch, CURLOPT_COOKIEJAR, $cookie_file_path);
+    curl_setopt($ch, CURLOPT_COOKIEFILE, $cookie_file_path);
+    $fetchToken = curl_exec($ch);
+
+    $doc = DOMDocument::loadHTML($fetchToken);
+    $xpath = new DOMXPath($doc);
+    $token = $xpath->query('//*[@id="loginForm"]/form/input[1]');
+    $token = $token->item(0)->getAttribute('value');
+    $postInfo = "Email=".$username."&Password=".$password."&__RequestVerificationToken=".$token;
+
+    curl_setopt($ch, CURLOPT_POST, 1);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $postInfo);
+    curl_setopt($ch, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+    curl_setopt($ch, CURLOPT_COOKIE, "__RequestVerificationToken={$token}");
+    curl_setopt($ch, CURLOPT_REFERER, $_SERVER['REQUEST_URI']);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
+    curl_exec($ch);
+    //Login End
+    //Get Carrier Lists
+    $result = curl_exec($ch);
+
+    $output = fopen('php://output', 'w');
+    fputs($output, $bom =( chr(0xEF) . chr(0xBB) . chr(0xBF) ));
+    fputcsv($output, array('Carrier ID', 'Company', 'Name', 'Email'), ',' , '""');
+    $carriers = json_decode($carriers);
+    foreach($carriers->value as $car) {
+
+        curl_setopt($ch,CURLOPT_URL, 'http://atgfr8.com/Carrier/Details/'.$car->Id);
+        $carrierResults = curl_exec($ch);
+
+        //var_dump($carrierResults);
+
+        $carrierDoc = DOMDocument::loadHTML($carrierResults);
+        $carrierXpath = new DOMXPath($carrierDoc);
+        $carrierSearchCompanyName = $carrierXpath->query('//*[@id="Carrier_Name"]');
+        $carrierSearchName1 = $carrierXpath->query('//*[@id="Contacts-List"]/table/tbody/tr[1]/td[1]');
+        $carrierSearchName2 = $carrierXpath->query('//*[@id="Contacts-List"]/table/tbody/tr[2]/td[1]');
+        $carrierSearchName3 = $carrierXpath->query('//*[@id="Contacts-List"]/table/tbody/tr[3]/td[1]');
+        $carrierSearchName4 = $carrierXpath->query('//*[@id="Contacts-List"]/table/tbody/tr[4]/td[1]');
+        $carrierSearchEmail1 = $carrierXpath->query('//*[@id="Contacts-List"]/table/tbody/tr[1]/td[5]');
+        $carrierSearchEmail2 = $carrierXpath->query('//*[@id="Contacts-List"]/table/tbody/tr[2]/td[5]');
+        $carrierSearchEmail3 = $carrierXpath->query('//*[@id="Contacts-List"]/table/tbody/tr[3]/td[5]');
+        $carrierSearchEmail4 = $carrierXpath->query('//*[@id="Contacts-List"]/table/tbody/tr[4]/td[5]');
+        $companyName = $carrierSearchCompanyName->item(0)->getAttribute('value');
+        $name1 = $carrierSearchName1->item(0)->nodeValue;
+        $name2 = $carrierSearchName2->item(0)->nodeValue;
+        $name3 = $carrierSearchName3->item(0)->nodeValue;
+        $name4 = $carrierSearchName4->item(0)->nodeValue;
+        $email1 = $carrierSearchEmail1->item(0)->nodeValue;
+        $email2 = $carrierSearchEmail2->item(0)->nodeValue;
+        $email3 = $carrierSearchEmail3->item(0)->nodeValue;
+        $email4 = $carrierSearchEmail4->item(0)->nodeValue;
+
+
+        if($name1 && filter_var($email1, FILTER_VALIDATE_EMAIL)) {
+            fputcsv($output, array($car->Id, ucwords(strtolower($companyName)), ucwords(strtolower($name1)), $email1), ',', '"');
+        }
+        if($name2 && filter_var($email2, FILTER_VALIDATE_EMAIL)) {
+            fputcsv($output, array($car->Id, ucwords(strtolower($companyName)), ucwords(strtolower($name2)), $email2), ',', '"');
+        }
+        if($name3 && filter_var($email3, FILTER_VALIDATE_EMAIL)) {
+            fputcsv($output, array($car->Id, ucwords(strtolower($companyName)), ucwords(strtolower($name3)), $email3), ',', '"');
+        }
+        if($name4 && filter_var($email4, FILTER_VALIDATE_EMAIL)) {
+            fputcsv($output, array($car->Id, ucwords(strtolower($companyName)), ucwords(strtolower($name4)), $email4), ',', '"');
+        }
+
+//        print "ID: ".$car->Id."<br>";
+//        print "Company: ".$companyName."<br>";
+//        print $name1 . "<br>";
+//        print $email1 . "<br><br>";
+//        print $name2 . "<br>";
+//        print $email2 . "<br><br>";
+//        print $name3 . "<br>";
+//        print $email3 . "<br><br>";
+//        print $name4 . "<br>";
+//        print $email4 . "<br><br>";
+//        print "--------------------<br><br>";
+
+       // var_dump($carrierResults);
+
+        [NAME]
+
+
+    //    die();
+    }
+    fclose($output);
+
+
+die();
+ //   return "TEST";
 }
