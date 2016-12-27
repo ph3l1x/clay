@@ -80,7 +80,13 @@ function clay_mod_form($form, &$form_state) {
         '#options' => array(
             t('r, reefer') => t('R, Reefer'),
             t('r53, 53\'\' reefer') => t('R53, 53\' Reefer'),
-            t('v, van') => t('V, Van')
+            t('v, van') => t('V, Van'),
+            t('f/sd, flatbed/stepdeck') => t('F/SD, Flatbed/StepDeck'),
+            t('f, flatbed') => t('F, Flatbed'),
+            t('v53, 53\'\' van') => t('V53, 53\' Van'),
+            t('vv, vented van') => t('VV, Vented Van'),
+            t('sd, step deck') => t('SD, Step Deck')
+
         ),
         '#title' => t('Options'),
         '#required' => TRUE
@@ -225,7 +231,7 @@ function clay_mod_form_results($form, &$form_state) {
 
        // var_dump($carrierResults);
 
-        [NAME]
+      //  [NAME]
 
 
     //    die();
