@@ -24,7 +24,7 @@ function clay_mod_menu() {
 
 function clay_mod_blacklist_form($form, &$form_state) {
     drupal_add_css(drupal_get_path('module', 'clay_mod') . '/css/clay_mod.min.css');
-    drupal_add_js(drupal_get_path('module', 'clay_mod') . '/js/jquery.SimpleMask.js');
+    drupal_add_js(drupal_get_path('module', 'clay_mod') . '/js/jquery.maskedinput.js');
     drupal_add_js(drupal_get_path('module', 'clay_mod') . '/js/clay_mod.js');
     $form['company'] = array(
         '#type' => 'textfield',

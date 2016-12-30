@@ -1,10 +1,3 @@
-(function ($) {
-
-    $('#edit-phone').simpleMask({
-        'mask': ['(###) ###-####'],
-        'nextInput': null
-    });
-
-console.log($('#edit-phone'));
-
-})(jQuery);
+jQuery(function($){
+    $("#edit-phone").mask("(999) 999-9999");
+});
