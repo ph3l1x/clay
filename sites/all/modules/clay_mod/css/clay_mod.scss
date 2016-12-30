@@ -1,0 +1,22 @@
+// To Compile run 'gulp watchclay'
+
+#clay-mod-blacklist-form {
+	input[type=text] {
+		width: 100px;
+		height:20px;
+	}
+	input[type=submit] {
+		border-radius: 0;
+		margin-left: 20px;
+		margin-top:8px;
+	}
+	label {
+		float: left;
+		padding-right: 10px;
+		margin-top: 4px;
+	}
+	.form-item {
+		float: left;
+		padding-left: 20px;
+	}
+}

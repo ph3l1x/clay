@@ -8,7 +8,8 @@ var rename = require('gulp-rename');
 var sh = require('shelljs');
 
 var paths = {
-  sass: ['./scss/**/*.scss', './scss/*.scss', './sites/all/themes/clay/css/sass/*.scss']
+    sass: ['./scss/**/*.scss', './scss/*.scss', './sites/all/themes/clay/css/sass/*.scss'],
+    clay: ['./sites/all/modules/clay_mod/css/*.scss']
 
 };
 
@@ -43,11 +44,27 @@ gulp.task('sass', function(done) {
     .pipe(gulp.dest('./www/css/'))
     .on('end', done);
 });
+gulp.task('sassclay', function(done) {
+
+    gulp.src('./sites/all/modules/clay_mod/css/*.scss')
+        .pipe(sass({
+            errLogToConsole: true
+        }))
+        .pipe(gulp.dest('./sites/all/modules/clay_mod/css/'))
+        .pipe(minifyCss({
+            keepSpecialComments: 0
+        }))
+        .pipe(rename({ extname: '.min.css' }))
+        .pipe(gulp.dest('./sites/all/modules/clay_mod/css/'))
+        .on('end', done);
+});
 
 gulp.task('watch', function() {
   gulp.watch(paths.sass, ['sass', 'sassx']);
 });
-
+gulp.task('watchclay', function() {
+    gulp.watch(paths.clay, ['sassclay']);
+});
 gulp.task('install', ['git-check'], function() {
   return bower.commands.install()
     .on('log', function(data) {
