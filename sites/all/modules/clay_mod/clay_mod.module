@@ -33,17 +33,17 @@ function clay_mod_blacklist_form($form, &$form_state) {
     $form['company'] = array(
         '#type' => 'textfield',
         '#title' => t('Company Name'),
-        '#required' => TRUE
+        '#required' => FALSE,
     );
     $form['name'] = array(
         '#type' => 'textfield',
         '#title' => t('Contact Name'),
-        '#required' => TRUE
+        '#required' => FALSE,
     );
     $form['phone'] = array(
         '#type' => 'textfield',
         '#title' => t('Phone'),
-        '#required' => TRUE
+        '#required' => FALSE,
     );
     $form['email'] = array(
         '#type' => 'textfield',
@@ -73,7 +73,7 @@ function clay_mod_blacklist_form($form, &$form_state) {
     return $form;
 }
 function clay_mod_blacklist_form_ajax($form, $form_state) {
-    return $form;
+    return $form['results'];
 }
 function clay_mod_blacklist_form_submit($form, $form_state) {
     $form_state['rebuild'] = TRUE;
@@ -84,7 +84,7 @@ function  clay_mod_blacklist_form_save(&$form, &$form_state) {
     $name = $form_state['values']['name'];
     $phone = $form_state['values']['phone'];
     $email = $form_state['values']['email'];
-    $query = db_insert('blacklist')
+    db_insert('blacklist')
         ->fields(array(
             'company_name' => $companyName,
             'name' => $name,
