@@ -38,3 +38,25 @@ a.ckeditor_links {
   margin-left: 10px;
   position: relative;
   z-index: 100; }
+
+.formText {
+  color: red;
+  margin-top: 10px; }
+
+.itemRow {
+  float: left;
+  clear: both;
+  width: 100%; }
+  .itemRow .form-item {
+    margin: 0 !important; }
+
+.itemRow:nth-child(even) {
+  background: #eee; }
+
+.nameField, .phoneField, .emailField {
+  width: 20%;
+  float: left; }
+
+.optionsField, .deleteButton {
+  float: left;
+  margin: 0 !important; }

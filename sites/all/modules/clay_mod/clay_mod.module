@@ -27,8 +27,7 @@ function clay_mod_blacklist_form($form, &$form_state) {
     drupal_add_js(drupal_get_path('module', 'clay_mod') . '/js/jquery.maskedinput.js');
     drupal_add_js(drupal_get_path('module', 'clay_mod') . '/js/clay_mod.js');
 
-    $form['#prefix'] = '<div id="clay_mod_blacklist_form_wrapper">';
-    $form['#suffix'] = '</div>';
+
 
     $form['company'] = array(
         '#type' => 'textfield',
@@ -55,42 +54,145 @@ function clay_mod_blacklist_form($form, &$form_state) {
         '#submit' => array('clay_mod_blacklist_form_submit'),
         '#ajax' => array(
             'callback' => 'clay_mod_blacklist_form_ajax',
-            'wrapper' => 'clay_mod_blacklist_form_wrapper',
-            'method' => 'append'
+//            'method' => 'replace',
+            'effect' => 'fade',
+          'wrapper' => 'clay_mod_blacklist_form_wrapper',
         ),
         '#value' => t('Add To Blacklist'),
         '#id' => 'ajax-save-form-values'
     );
 
-    $rows = db_select('blacklist', 't')
-        ->fields('t')
-        ->execute()
-        ->fetchAll();
-    foreach($rows as $k => $v) {
-        $form['results'][$k]['#markup'] = "<div class=\"vvvvvvvvv\">{$v->name}</div>";
-    }
 
-    return $form;
+//    $form['wrapper']['start'] = array(
+//      '#markup' => '<div id="clay_mod_blacklist_form_wrapper">',
+//    );
+  $form['results'] = array(
+    '#prefix' => '<div id="clay_mod_blacklist_form_wrapper">',
+    '#suffix' => '</div>',
+  );
+    $rows = db_select('blacklist', 't')
+      ->fields('t')
+      ->execute()
+      ->fetchAll();
+    foreach ($rows as $k => $v) {
+      $form['results'][$k]['container'] = array(
+        '#prefix' => '<div class="itemRow">',
+        '#suffix' => '</div>',
+      );
+      $form['results'][$k]['container']['items'] = array(
+        '#markup' => '<div class="nameField">'.$v->name.'</div><div class="phoneField">'.$v->phone.'</div><div class="emailField">'.$v->email.'</div>',
+      );
+
+      // SOMETHiNG WRONG WITH #TYPE maybe 2 many submit form buttons on a page.....
+
+      $form['results'][$k]['container']['delete'] = array(
+        '#type' => 'select',
+        '#options' => array('' => t('Actions'), $v->id => t('Delete')),
+        '#id' => 'ajax-action-form-values'.$k,
+        '#name' => 'delete-'.$v->id,
+        '#attributes' => array(
+          'data-id' => $v->id,
+          'class' => array('deleteButton'),
+        ),
+        '#ajax' => array(
+          'callback' => 'clay_mod_blacklist_remove_ajax',
+          'event' => 'change',
+          'effect' => 'fade',
+          'wrapper' => 'clay_mod_blacklist_form_wrapper',
+        ),
+      );
+    }
+  return $form;
+}
+function clay_mod_blacklist_remove_ajax($form, &$form_state) {
+  $blackListID = $form_state['triggering_element']['#attributes']['data-id'];
+//  kpr($form_state['triggering_element']);
+//  die("SEF");
+  $query = db_delete('blacklist')
+    ->condition('id', $blackListID)
+    ->execute();
+
+  $rows = db_select('blacklist', 't')
+    ->fields('t')
+    ->execute()
+    ->fetchAll();
+  foreach ($rows as $k => $v) {
+    $form['results'][$k]['container'] = array(
+      '#prefix' => '<div class="itemRow">',
+      '#suffix' => '</div>',
+    );
+    $form['results'][$k]['container']['items'] = array(
+      '#markup' => '<div class="nameField">'.$v->name.'</div><div class="phoneField">'.$v->phone.'</div><div class="emailField">'.$v->email.'</div>',
+    );
+    $form['results'][$k]['container']['delete'] = array(
+      '#type' => 'select',
+      '#options' => array('' => t('Actions'), $v->id => t('Delete')),
+      '#id' => 'ajax-action-form-values-'.$k,
+      '#name' => 'delete-'.$v->id,
+      '#attributes' => array(
+        'data-id' => $v->id,
+        'class' => array('deleteButton'),
+      ),
+      '#ajax' => array(
+        'callback' => 'clay_mod_blacklist_remove_ajax',
+        'event' => 'change',
+        'effect' => 'fade',
+        'wrapper' => 'clay_mod_blacklist_form_wrapper',
+      ),
+    );
+  }
+  return $form['results'];
+
 }
 function clay_mod_blacklist_form_ajax($form, $form_state) {
+  //clay_mod_blacklist_form_save($form, $form_state);
+  $rows = db_select('blacklist', 't')
+    ->fields('t')
+    ->execute()
+    ->fetchAll();
+  foreach ($rows as $k => $v) {
+    $form['results'][$k]['container'] = array(
+      '#prefix' => '<div class="itemRow">',
+      '#suffix' => '</div>',
+    );
+    $form['results'][$k]['container']['items'] = array(
+      '#markup' => '<div class="nameField">'.$v->name.'</div><div class="phoneField">'.$v->phone.'</div><div class="emailField">'.$v->email.'</div>',
+    );
+    $form['results'][$k]['container']['delete'] = array(
+      '#type' => 'select',
+      '#options' => array('' => t('Actions'), 'delete' => t('Delete')),
+      '#value' => t('Delete From Blacklist'),
+      '#id' => 'ajax-save-form-values',
+      '#indx' => $v->id,
+      '#attributes' => array(
+        'data-id' => $v->id,
+        'class' => array('deleteButton'),
+      ),
+      '#ajax' => array(
+        'callback' => 'clay_mod_blacklist_remove_ajax',
+        'effect' => 'fade',
+        'wrapper' => 'clay_mod_blacklist_form_wrapper',
+      ),
+    );
+  }
     return $form['results'];
 }
 function clay_mod_blacklist_form_submit($form, $form_state) {
-    $form_state['rebuild'] = TRUE;
-    clay_mod_blacklist_form_save($form, $form_state);
+//    clay_mod_blacklist_form_save($form, $form_state);
+  $companyName = $form_state['values']['company'];
+  $name = $form_state['values']['name'];
+  $phone = $form_state['values']['phone'];
+  $email = $form_state['values']['email'];
+  $query = db_insert('blacklist')
+    ->fields(array(
+      'company_name' => $companyName,
+      'name' => $name,
+      'phone' => $phone,
+      'email' => $email,
+    ))->execute();
 }
 function  clay_mod_blacklist_form_save(&$form, &$form_state) {
-    $companyName = $form_state['values']['company'];
-    $name = $form_state['values']['name'];
-    $phone = $form_state['values']['phone'];
-    $email = $form_state['values']['email'];
-    db_insert('blacklist')
-        ->fields(array(
-            'company_name' => $companyName,
-            'name' => $name,
-            'phone' => $phone,
-            'email' => $email,
-        ))->execute();
+
 }
 function clay_mod_form($form, &$form_state) {
     $form['html1'] = array (
