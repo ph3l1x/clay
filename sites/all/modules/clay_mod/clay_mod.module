@@ -4,24 +4,51 @@ drupal_add_css(drupal_get_path('module', 'clay_mod') . '/css/clay_mod.min.css');
 function clay_mod_menu() {
     $items = array();
     $items['admin/config/system/clay'] = array(
-        'title' => t('Clay Trucking'),
-        'page callback' => 'drupal_get_form',
-        'access arguments' => array('access administration pages'),
-        'page arguments' => array('clay_mod_form'),
-        'type' => MENU_NORMAL_ITEM
+      'title' => t('Clay Trucking'),
+      'page callback' => 'drupal_get_form',
+      'access arguments' => array('access administration pages'),
+      'page arguments' => array('clay_mod_form'),
+      'type' => MENU_NORMAL_ITEM
     );
     $items['admin/config/system/clay_blacklist'] = array(
-        'title' => t('Clay Trucking Blacklist'),
-        'page callback' => 'drupal_get_form',
-        'access arguments' => array('access administration pages'),
-        'page arguments' => array('clay_mod_blacklist_form'),
-        'type' => MENU_NORMAL_ITEM
+      'title' => t('Clay Trucking Blacklist'),
+      'page callback' => 'drupal_get_form',
+      'access arguments' => array('access administration pages'),
+      'page arguments' => array('clay_mod_blacklist_form'),
+      'type' => MENU_NORMAL_ITEM
     );
+    $items['unsubscribe/%'] = array(
+      'title' => t('Unsubscribe from mailing list.'),
+      'page callback' => 'clay_mod_unsubscribe',
+      'page arguments' => array(1),
+      'access callback' => true,
+      'type' => MENU_NORMAL_ITEM
+    );
+    $items['admin/config/system/clay_scanmail'] = array(
+      'title' => 'Add bounced emails to blacklist',
+      'page callback' => 'drupal_get_form',
+      'access arguments' => array('access administration pages'),
+      'page arguments' => array('clay_scanmail'),
+      'type' => MENU_NORMAL_ITEM
+    )
 
 
     return $items;
 }
-
+function clay_mod_unsubscribe($variable) {
+  $query = db_insert('blacklist')
+    ->fields(array(
+      'company_name' => 'Manually Unsubscribed',
+      'name' => 'Manually Unsubscribed',
+      'phone' => '555-555-5555',
+      'email' => $variable,
+    ))->execute();
+  if($query) {
+    return $variable . " has been instantly removed from our mailing list.";
+  } else {
+    return 'You have already been unsubscribed from this mailing list.';
+  }
+}
 function clay_mod_blacklist_form($form, &$form_state) {
 //    drupal_add_css(drupal_get_path('module', 'clay_mod') . '/css/clay_mod.min.css');
     drupal_add_js(drupal_get_path('module', 'clay_mod') . '/js/jquery.maskedinput.js');
@@ -47,7 +74,7 @@ function clay_mod_blacklist_form($form, &$form_state) {
     $form['email'] = array(
         '#type' => 'textfield',
         '#title' => t('Email'),
-        '#required' => TRUE
+        '#required' => TRUE,
     );
     $form['submit_button'] = array(
         '#type' => 'submit',
@@ -98,6 +125,7 @@ function clay_mod_blacklist_form($form, &$form_state) {
           'callback' => 'clay_mod_blacklist_remove_ajax',
           'event' => 'change',
           'effect' => 'fade',
+//          'method' => 'replace',
           'wrapper' => 'clay_mod_blacklist_form_wrapper',
         ),
       );
@@ -106,9 +134,7 @@ function clay_mod_blacklist_form($form, &$form_state) {
 }
 function clay_mod_blacklist_remove_ajax($form, &$form_state) {
   $blackListID = $form_state['triggering_element']['#attributes']['data-id'];
-//  kpr($form_state['triggering_element']);
-//  die("SEF");
-  $query = db_delete('blacklist')
+  db_delete('blacklist')
     ->condition('id', $blackListID)
     ->execute();
 
@@ -295,7 +321,7 @@ function clay_mod_form($form, &$form_state) {
         '#wysiwyg' => TRUE
     );
     $form['html3'] = array (
-        '#markup' => '<div class="formText">You can use token and replace fields in the email bottom. Available tokens are [name] [company_name] [email]</div></div><div class="formBottom">'
+        '#markup' => '<div class="formText">You can use customized tokens and replace fields in the email message. Available tokens are [name] [company_name] [email]</div></div><div class="formBottom">'
     );
     $form['download_button'] = array(
         '#type' => 'submit',
@@ -314,7 +340,6 @@ function clay_mod_form($form, &$form_state) {
     return $form;
 
 }
-
 function clay_mod_form_results_download($form, &$form_state) {
     header('Pragma: public');
     header('Expires: 0');
@@ -435,10 +460,10 @@ function clay_mod_form_results_download($form, &$form_state) {
 
 die();
 }
-
 function clay_mod_form_results_email($form, &$form_state) {
 
 //    $form_state['redirect'] = 'node';
+    require 'phpmailer/PHPMailerAutoload.php';
     $status = $form_state['values']['Status'];
 
     $state = $form_state['values']['state'];
@@ -482,10 +507,10 @@ function clay_mod_form_results_email($form, &$form_state) {
     curl_setopt($ch, CURLOPT_COOKIEFILE, $cookie_file_path);
     $fetchToken = curl_exec($ch);
 
-    $doc = DOMDocument::loadHTML($fetchToken);
-    $xpath = new DOMXPath($doc);
-    $token = $xpath->query('//*[@id="loginForm"]/form/input[1]');
-    $token = $token->item(0)->getAttribute('value');
+    @$doc = DOMDocument::loadHTML($fetchToken);
+    @$xpath = new DOMXPath($doc);
+    @$token = $xpath->query('//*[@id="loginForm"]/form/input[1]');
+    @$token = $token->item(0)->getAttribute('value');
     $postInfo = "Email=".$username."&Password=".$password."&__RequestVerificationToken=".$token;
 
     curl_setopt($ch, CURLOPT_POST, 1);
@@ -504,26 +529,26 @@ function clay_mod_form_results_email($form, &$form_state) {
         curl_setopt($ch,CURLOPT_URL, 'http://atgfr8.com/Carrier/Details/'.$car->Id);
         $carrierResults = curl_exec($ch);
 
-        $carrierDoc = DOMDocument::loadHTML($carrierResults);
-        $carrierXpath = new DOMXPath($carrierDoc);
-        $carrierSearchCompanyName = $carrierXpath->query('//*[@id="Carrier_Name"]');
-        $carrierSearchName1 = $carrierXpath->query('//*[@id="Contacts-List"]/table/tbody/tr[1]/td[1]');
-        $carrierSearchName2 = $carrierXpath->query('//*[@id="Contacts-List"]/table/tbody/tr[2]/td[1]');
-        $carrierSearchName3 = $carrierXpath->query('//*[@id="Contacts-List"]/table/tbody/tr[3]/td[1]');
-        $carrierSearchName4 = $carrierXpath->query('//*[@id="Contacts-List"]/table/tbody/tr[4]/td[1]');
-        $carrierSearchEmail1 = $carrierXpath->query('//*[@id="Contacts-List"]/table/tbody/tr[1]/td[5]');
-        $carrierSearchEmail2 = $carrierXpath->query('//*[@id="Contacts-List"]/table/tbody/tr[2]/td[5]');
-        $carrierSearchEmail3 = $carrierXpath->query('//*[@id="Contacts-List"]/table/tbody/tr[3]/td[5]');
-        $carrierSearchEmail4 = $carrierXpath->query('//*[@id="Contacts-List"]/table/tbody/tr[4]/td[5]');
-        $companyName = $carrierSearchCompanyName->item(0)->getAttribute('value');
-        $name1 = $carrierSearchName1->item(0)->nodeValue;
-        $name2 = $carrierSearchName2->item(0)->nodeValue;
-        $name3 = $carrierSearchName3->item(0)->nodeValue;
-        $name4 = $carrierSearchName4->item(0)->nodeValue;
-        $email1 = $carrierSearchEmail1->item(0)->nodeValue;
-        $email2 = $carrierSearchEmail2->item(0)->nodeValue;
-        $email3 = $carrierSearchEmail3->item(0)->nodeValue;
-        $email4 = $carrierSearchEmail4->item(0)->nodeValue;
+        @$carrierDoc = DOMDocument::loadHTML($carrierResults);
+        @$carrierXpath = new DOMXPath($carrierDoc);
+        @$carrierSearchCompanyName = $carrierXpath->query('//*[@id="Carrier_Name"]');
+        @$carrierSearchName1 = $carrierXpath->query('//*[@id="Contacts-List"]/table/tbody/tr[1]/td[1]');
+        @$carrierSearchName2 = $carrierXpath->query('//*[@id="Contacts-List"]/table/tbody/tr[2]/td[1]');
+        @$carrierSearchName3 = $carrierXpath->query('//*[@id="Contacts-List"]/table/tbody/tr[3]/td[1]');
+        @$carrierSearchName4 = $carrierXpath->query('//*[@id="Contacts-List"]/table/tbody/tr[4]/td[1]');
+        @$carrierSearchEmail1 = $carrierXpath->query('//*[@id="Contacts-List"]/table/tbody/tr[1]/td[5]');
+        @$carrierSearchEmail2 = $carrierXpath->query('//*[@id="Contacts-List"]/table/tbody/tr[2]/td[5]');
+        @$carrierSearchEmail3 = $carrierXpath->query('//*[@id="Contacts-List"]/table/tbody/tr[3]/td[5]');
+        @$carrierSearchEmail4 = $carrierXpath->query('//*[@id="Contacts-List"]/table/tbody/tr[4]/td[5]');
+        @$companyName = $carrierSearchCompanyName->item(0)->getAttribute('value');
+        @$name1 = $carrierSearchName1->item(0)->nodeValue;
+        @$name2 = $carrierSearchName2->item(0)->nodeValue;
+        @$name3 = $carrierSearchName3->item(0)->nodeValue;
+        @$name4 = $carrierSearchName4->item(0)->nodeValue;
+        @$email1 = $carrierSearchEmail1->item(0)->nodeValue;
+        @$email2 = $carrierSearchEmail2->item(0)->nodeValue;
+        @$email3 = $carrierSearchEmail3->item(0)->nodeValue;
+        @$email4 = $carrierSearchEmail4->item(0)->nodeValue;
 
 
         if($name1 && filter_var($email1, FILTER_VALIDATE_EMAIL)) {
@@ -559,6 +584,52 @@ function clay_mod_form_results_email($form, &$form_state) {
             );
         }
     }
-    print_r($emailData);
-    die("Ohh My");
+    $subject = $form_state['values']['subject'];
+    $query = db_query("SELECT email from blacklist");
+    $blackListed = $query->fetchCol();
+
+    foreach($emailData as $item) {
+      if(!in_array($item['email'], $blackListed)) {
+        $message = str_replace('[name]', $item['name'], $form_state['values']['body']['value']);
+        $message = str_replace('[company_name]', $item['company_name'], $message);
+        $message = str_replace('[email]', $item['email'], $message);
+        $message .= '<br><br><br><br><div style="font-size:11px;color:#ccc;">If you are not interested in receiving emails regarding new loads you can <a href="http://clay.mindimage.net/unsubscribe/' . $item['email'] . '" style="text-decoration:none;color:#ccc;"><i>UNSUBSCRIBE</i></a> here.</div>';
+        $mail = new PHPMailer;
+        $mail->isSMTP();
+        $mail->SMTPAuth = TRUE;
+        $mail->SMTPDebug = 3;
+        $mail->Host = 'smtp.armstrongloads.com';
+        $mail->Password = 'dispatch123Q';
+        $mail->Username = 'clay@armstrongloads.com';
+//        $mail->Username = 'phelix@armstrongloads.com';
+//        $mail->Password = 'giznad4562';
+        $mail->SMTPSecure = 'ssl';
+        $mail->Port = 465;
+        $mail->SMTPOptions = array(
+          'ssl' => array(
+            'allow_self_signed' => TRUE,
+            'verify_peer' => FALSE,
+            'verify_peer_name' => FALSE,
+          ),
+        );
+
+        $mail->setFrom('clay@armstrongloads.com', 'Clay Roman');
+      $mail->addAddress($item['email'], $item['name']);
+//        $mail->addAddress('rperry@mindimage.net', $item['name']);
+        $mail->isHTML(TRUE);
+        $mail->Subject = $subject;
+        $mail->Body = $message;
+
+        if (!$mail->send()) {
+//          echo 'Message could not be sent.<br>';
+//          echo 'Mailer Error: ' . $mail->ErrorInfo . '<br><br><br>';
+          drupal_set_message('There was an error sending to ' . $item['email'] . ' - ' . $mail->ErrorInfo, 'error');
+        }
+        else {
+          drupal_set_message('Email was sent to' . $item['email'] . 'successfully.', 'status');
+        }
+      } else {
+          drupal_set_message('Email was NOT sent to' . $item['email'] . ' - blacklisted', 'warning');
+      }
+    }
 }
