@@ -24,6 +24,13 @@ function clay_mod_menu() {
       'access callback' => true,
       'type' => MENU_NORMAL_ITEM
     );
+    $items['admin/config/system/clay_scanmail'] = array(
+      'title' => 'Add bounced emails to blacklist',
+      'page callback' => 'drupal_get_form',
+      'access arguments' => array('access administration pages'),
+      'page arguments' => array('clay_scanmail'),
+      'type' => MENU_NORMAL_ITEM
+    )
 
 
     return $items;
@@ -314,7 +321,7 @@ function clay_mod_form($form, &$form_state) {
         '#wysiwyg' => TRUE
     );
     $form['html3'] = array (
-        '#markup' => '<div class="formText">You can use token and replace fields in the email bottom. Available tokens are [name] [company_name] [email]</div></div><div class="formBottom">'
+        '#markup' => '<div class="formText">You can use customized tokens and replace fields in the email message. Available tokens are [name] [company_name] [email]</div></div><div class="formBottom">'
     );
     $form['download_button'] = array(
         '#type' => 'submit',
