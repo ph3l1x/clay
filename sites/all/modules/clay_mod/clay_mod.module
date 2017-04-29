@@ -25,12 +25,12 @@ function clay_mod_menu() {
       'type' => MENU_NORMAL_ITEM
     );
     $items['admin/config/system/clay_scanmail'] = array(
-      'title' => 'Add bounced emails to blacklist',
+      'title' => t('Add bounced emails to blacklist'),
       'page callback' => 'drupal_get_form',
       'access arguments' => array('access administration pages'),
       'page arguments' => array('clay_scanmail'),
       'type' => MENU_NORMAL_ITEM
-    )
+    );
 
 
     return $items;
@@ -626,10 +626,53 @@ function clay_mod_form_results_email($form, &$form_state) {
           drupal_set_message('There was an error sending to ' . $item['email'] . ' - ' . $mail->ErrorInfo, 'error');
         }
         else {
-          drupal_set_message('Email was sent to' . $item['email'] . 'successfully.', 'status');
+          drupal_set_message('Email was sent to' . $item['email'] . ' successfully.', 'status');
         }
       } else {
           drupal_set_message('Email was NOT sent to' . $item['email'] . ' - blacklisted', 'warning');
       }
     }
+}
+function clay_scanmail($form, &$form_state) {
+  $form['markup'] = array(
+    '#markup' => '<div class="scanmail-text">To scan your mailbox and remove bad emails and add them to the blacklist lick the Scan button</div>',
+  );
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#submit' => array('clay_mod_scanmail_form_submit'),
+    '#value' => t('Scan'),
+  );
+
+  return $form;
+}
+function clay_mod_scanmail_form_submit($form, &$form_state) {
+
+  $mbox= imap_open('{armstrongloads.com:993/imap/ssl/novalidate-cert}INBOX', 'clay@armstrongloads.com', 'dispatch123Q');
+  $count = imap_num_msg($mbox);
+  for($msgno = 1; $msgno <= $count; $msgno++) {
+    $headers = imap_headerinfo($mbox, $msgno);
+    if($headers->subject == 'Undelivered Mail Returned to Sender') {
+//      $structure = imap_fetchstructure($mbox, $msgno);
+      $body = imap_fetchbody($mbox, $msgno, 2);
+      @preg_match('/Final-Recipient: \w+; ([^\s]+)/', $body, $email);
+
+      $blacklisted = db_query('SELECT id from {blacklist} WHERE email = :e', array(':e' => $email[1]))->fetchField();
+      if($blacklisted == FALSE) {
+        db_insert('blacklist')
+          ->fields(array(
+            'company_name' => 'Email Failure',
+            'name' => 'Email Failure',
+            'phone' => '555-555-5555',
+            'email' => $email[1],
+          ))->execute();
+
+          drupal_set_message($email[1] . ' was added to blacklist and message removed.', 'status');
+      } else {
+        drupal_set_message($email[1] . ' is already on the blacklist', 'warning');
+      }
+      imap_delete($mbox, $msgno);
+    }
+  }
+  imap_close($mbox, CL_EXPUNGE);
+//  var_dump(imap_errors());
 }
